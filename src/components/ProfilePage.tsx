@@ -1,6 +1,7 @@
 import {
   ageFromBirth, daysToBirthday, exportProfile, formatBirth, plural, type Profile,
 } from '../lib/profile'
+import type { Settings } from '../lib/types'
 import { ProfileForm } from './ProfileForm'
 
 const TONES = ['var(--confetti-blue)', 'var(--confetti-green)', 'var(--confetti-pink)', 'var(--confetti-purple)']
@@ -12,12 +13,47 @@ export function avatarTone(name: string) {
 }
 
 interface Props {
-  profile: Profile
+  profile: Profile | null
+  settings: Settings
+  onSettings: (patch: Partial<Settings>) => void
   onSave: (p: Profile) => void
   onDelete: () => void
 }
 
-export function ProfilePage({ profile, onSave, onDelete }: Props) {
+function SettingsBlock({ settings, onSettings }: Pick<Props, 'settings' | 'onSettings'>) {
+  return (
+    <section className="settings">
+      <h3>Настройки</h3>
+      <label className="switch">
+        <input type="checkbox" checked={settings.recyclePassed} onChange={(e) => onSettings({ recyclePassed: e.target.checked })} />
+        <span>
+          <strong>Возвращать пропущенные</strong>
+          <small>Карточки, которые вы смахнули влево, вернутся в конец колоды. Выключите — и они больше не появятся.</small>
+        </span>
+      </label>
+      <label className="switch is-disabled">
+        <input type="checkbox" disabled />
+        <span>
+          <strong>Пуш-уведомления о новых впечатлениях <em className="soon">Скоро</em></strong>
+          <small>Сообщим, когда в каталоге появится что-то новое.</small>
+        </span>
+      </label>
+    </section>
+  )
+}
+
+export function ProfilePage({ profile, settings, onSettings, onSave, onDelete }: Props) {
+  if (!profile) {
+    return (
+      <div className="profile">
+        <h1>Анкета</h1>
+        <p className="muted">Расскажите о себе — поздравим с днём рождения и подскажем подарки к празднику. Займёт полминуты.</p>
+        <ProfileForm mode="onboarding" onSave={onSave} />
+        <SettingsBlock settings={settings} onSettings={onSettings} />
+      </div>
+    )
+  }
+
   const age = ageFromBirth(profile.birthDate)
   const days = daysToBirthday(profile.birthDate)
 
@@ -43,6 +79,8 @@ export function ProfilePage({ profile, onSave, onDelete }: Props) {
 
       <ProfileForm mode="edit" initial={profile} onSave={onSave} />
 
+      <SettingsBlock settings={settings} onSettings={onSettings} />
+
       <details className="data">
         <summary>Какие данные хранятся</summary>
         <p className="muted small">
@@ -54,7 +92,7 @@ export function ProfilePage({ profile, onSave, onDelete }: Props) {
       <button
         className="link danger"
         onClick={() => {
-          if (confirm('Удалить профиль, вишлист и историю свайпов с этого устройства?')) onDelete()
+          if (confirm('Удалить профиль, настройки, вишлист и историю свайпов с этого устройства?')) onDelete()
         }}
       >
         Удалить мои данные

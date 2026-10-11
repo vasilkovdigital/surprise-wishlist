@@ -17,11 +17,15 @@ export interface Product {
   isGiftCard: boolean
 }
 
+/** Единственный значимый фильтр — категория (тип впечатления). null = всё. */
 export interface Filters {
-  done: boolean
-  who: string | null // self | her | him | couple | parents | kids
-  budget: Bucket | null
-  occasion: string | null
+  category: string | null
+}
+
+/** Настройки приложения; живут отдельно от профиля и доступны без анкеты. */
+export interface Settings {
+  /** true — пропущенные карточки возвращаются в конец колоды; false — больше не показываются */
+  recyclePassed: boolean
 }
 
 export interface Swipe { id: string; d: 'like' | 'pass' }

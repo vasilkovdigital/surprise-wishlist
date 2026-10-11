@@ -7,6 +7,7 @@ interface Props {
   deck: Product[]
   canUndo: boolean
   likedCount: number
+  recyclePassed: boolean
   onLike: (id: string) => void
   onPass: (id: string) => void
   onUndo: () => void
@@ -15,7 +16,7 @@ interface Props {
   onOpenWishlist: () => void
 }
 
-export function Deck({ deck, canUndo, likedCount, onLike, onPass, onUndo, onOpen, onReset, onOpenWishlist }: Props) {
+export function Deck({ deck, canUndo, likedCount, recyclePassed, onLike, onPass, onUndo, onOpen, onReset, onOpenWishlist }: Props) {
   const [fling, setFling] = useState<'like' | 'pass' | null>(null)
   const top = deck[0]
   const next = deck[1]
@@ -36,6 +37,9 @@ export function Deck({ deck, canUndo, likedCount, onLike, onPass, onUndo, onOpen
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return
+      if (document.querySelector('.sheet-back')) return // открыта шторка/модалка
       if (e.key === 'ArrowRight') act('like')
       else if (e.key === 'ArrowLeft') act('pass')
     }
@@ -48,9 +52,13 @@ export function Deck({ deck, canUndo, likedCount, onLike, onPass, onUndo, onOpen
       <div className="empty">
         <img src="brand/mark_confetti_dark.svg" alt="" width="72" />
         <h2>Вы всё посмотрели</h2>
-        <p>Впечатления в этой подборке закончились. В вишлисте: {likedCount}.</p>
+        <p>
+          {recyclePassed
+            ? `В этой подборке больше нет впечатлений. В вишлисте: ${likedCount}.`
+            : `Пропущенные скрыты (так настроено в профиле). В вишлисте: ${likedCount}.`}
+        </p>
         <button className="btn btn-ink" onClick={onOpenWishlist}>Открыть вишлист</button>
-        <button className="btn btn-ghost" onClick={onReset}>Показать пропущенные снова</button>
+        {!recyclePassed && <button className="btn btn-ghost" onClick={onReset}>Показать пропущенные снова</button>}
       </div>
     )
   }

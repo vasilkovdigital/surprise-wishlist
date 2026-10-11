@@ -136,3 +136,26 @@ p { margin: 0 0 12px; line-height: 1.45; }
 .data pre { background: var(--soft); border-radius: 12px; padding: 10px; font-size: 11px; overflow-x: auto; }
 .danger { color: #b3123f; display: block; margin: 8px auto 16px; }
 .tabs button { font-size: 14px; }
+
+/* v3: фильтр категорий + ИИ-подбор */
+.filters { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 8px; scrollbar-width: none; flex-shrink: 0; }
+.filters::-webkit-scrollbar { display: none; }
+.chip-btn { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; border: 2px solid var(--ink); background: var(--surface-100); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.chip-btn.on { background: var(--confetti-blue); }
+.chip-btn.ai { border-style: dashed; color: var(--ink-soft); border-color: var(--ink-soft); cursor: not-allowed; display: inline-flex; gap: 6px; align-items: center; }
+.soon { background: var(--confetti-purple); color: var(--ink); font-size: 11px; font-weight: 700; font-style: normal; padding: 2px 8px; border-radius: 999px; }
+
+/* настройки (переключатели) */
+.settings { margin: 20px 0 8px; display: flex; flex-direction: column; gap: 12px; }
+.settings h3 { margin: 0; font-size: 16px; }
+.switch { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; }
+.switch input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--ink); flex-shrink: 0; }
+.switch span { display: flex; flex-direction: column; gap: 2px; }
+.switch small { color: var(--ink-soft); font-size: 12px; line-height: 1.35; }
+.switch.is-disabled { opacity: .6; }
+
+/* шеринг иконками */
+.share-icons { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 2px; }
+.sicon { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--ink); background: var(--surface-100); color: var(--ink); display: grid; place-items: center; text-decoration: none; padding: 0; }
+.sicon:hover { background: var(--confetti-green); }
+.share-note { min-height: 20px; margin: 8px 0 0; }

@@ -107,7 +107,7 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
       </label>
 
       <button type="submit" className="btn btn-ink full">
-        {mode === 'onboarding' ? 'Продолжить' : saved ? 'Сохранено ✓' : 'Сохранить'}
+        {saved ? 'Сохранено ✓' : mode === 'onboarding' ? 'Сохранить анкету' : 'Сохранить'}
       </button>
     </form>
   )

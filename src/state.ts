@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildDeck } from './lib/deck'
-import { load, save } from './lib/storage'
 import type { Profile } from './lib/profile'
-import type { Filters, Meta, Product, Swipe } from './lib/types'
+import { load, save } from './lib/storage'
+import type { Filters, Meta, Product, Settings, Swipe } from './lib/types'
 
-const EMPTY: Filters = { done: false, who: null, budget: null, occasion: null }
 const BASE = import.meta.env.BASE_URL
+
+/** После стольких свайпов предлагаем заполнить анкету (один раз). */
+export const PROFILE_PROMPT_AFTER = 10
 
 export const track = (name: string, payload?: Record<string, unknown>) => {
   // Заглушка аналитики: позже сюда подключается GA / Яндекс.Метрика
@@ -27,10 +29,26 @@ export function useCatalog() {
   return { products, meta, error }
 }
 
-export function useWishlist(products: Product[] | null) {
+export function useSettings() {
+  const [settings, setSettings] = useState<Settings>(() => ({ recyclePassed: true, ...load<Partial<Settings>>('wl.settings', {}) }))
+  const update = useCallback((patch: Partial<Settings>) => {
+    setSettings((s) => {
+      const n = { ...s, ...patch }
+      save('wl.settings', n)
+      track('settings_change', { ...patch })
+      return n
+    })
+  }, [])
+  return { settings, updateSettings: update }
+}
+
+export function useWishlist(products: Product[] | null, recyclePassed: boolean) {
   const [liked, setLiked] = useState<string[]>(() => load('wl.liked', []))
   const [swipes, setSwipes] = useState<Swipe[]>(() => load('wl.swipes', []))
-  const [filters, setFilters] = useState<Filters>(() => load('wl.filters', EMPTY))
+  const [filters, setFilters] = useState<Filters>(() => {
+    const f = load<Partial<Filters>>('wl.filters', {}) // старый формат (who/budget/occasion) игнорируем
+    return { category: typeof f.category === 'string' ? f.category : null }
+  })
   const [seed] = useState<number>(() => {
     const s = load<number>('wl.seed', 0) || Math.floor(Math.random() * 2 ** 31)
     save('wl.seed', s)
@@ -41,7 +59,10 @@ export function useWishlist(products: Product[] | null) {
   useEffect(() => save('wl.swipes', swipes), [swipes])
   useEffect(() => save('wl.filters', filters), [filters])
 
-  const deck = useMemo(() => (products ? buildDeck(products, filters, swipes, seed) : []), [products, filters, swipes, seed])
+  const deck = useMemo(
+    () => (products ? buildDeck(products, filters, swipes, seed, recyclePassed) : []),
+    [products, filters, swipes, seed, recyclePassed],
+  )
   const byId = useMemo(() => new Map((products ?? []).map((p) => [p.id, p])), [products])
 
   const like = useCallback((id: string) => {
@@ -65,27 +86,32 @@ export function useWishlist(products: Product[] | null) {
     setLiked((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]))
   }, [])
   const resetPassed = useCallback(() => setSwipes((s) => s.filter((x) => x.d === 'like')), [])
-  const applyFilters = useCallback((f: Filters) => {
-    setFilters({ ...f, done: true })
-    track('filter_set', { ...f })
+  const setCategory = useCallback((category: string | null) => {
+    setFilters({ category })
+    track('filter_set', { category })
   }, [])
 
-  return { liked, swipes, filters, deck, byId, like, pass, undo, toggle, resetPassed, applyFilters }
+  return { liked, swipes, filters, deck, byId, like, pass, undo, toggle, resetPassed, setCategory }
 }
 
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(() => load<Profile | null>('wl.profile', null))
+  const [asked, setAsked] = useState<boolean>(() => load('wl.profileAsked', false))
   const saveProfile = useCallback((p: Profile) => {
     setProfile(p)
     save('wl.profile', p)
     track('profile_save', { fields: Object.keys(p).filter((k) => !!p[k as keyof Profile]) })
   }, [])
+  const markAsked = useCallback(() => {
+    setAsked(true)
+    save('wl.profileAsked', true)
+  }, [])
   const wipe = useCallback(() => {
-    for (const k of ['wl.profile', 'wl.liked', 'wl.swipes', 'wl.filters', 'wl.seed']) {
+    for (const k of ['wl.profile', 'wl.profileAsked', 'wl.settings', 'wl.liked', 'wl.swipes', 'wl.filters', 'wl.seed']) {
       try { localStorage.removeItem(k) } catch { /* ignore */ }
     }
     location.hash = ''
     location.reload()
   }, [])
-  return { profile, saveProfile, wipe }
+  return { profile, asked, markAsked, saveProfile, wipe }
 }
