@@ -1,19 +1,18 @@
 import { useState } from 'react'
 import { CITIES, INTERESTS } from '../lib/config'
 import {
-  GENDERS, MONTHS, normalizePhone, validateBirth, validateEmail, validateName, validatePhone,
+  GENDERS, MONTHS, ageFromProfile, normalizePhone, validateBirth, validateEmail, validateName, validatePhone,
   type Gender, type Profile,
 } from '../lib/profile'
 
 interface Props {
-  mode: 'onboarding' | 'edit'
   initial?: Profile | null
   onSave: (p: Profile) => void
 }
 
 const YEARS = Array.from({ length: new Date().getFullYear() - 1925 + 1 }, (_, i) => new Date().getFullYear() - i)
 
-export function ProfileForm({ mode, initial, onSave }: Props) {
+export function ProfileForm({ initial, onSave }: Props) {
   const [name, setName] = useState(initial?.name ?? '')
   const [day, setDay] = useState<number | null>(initial?.birthDay ?? null)
   const [month, setMonth] = useState<number | null>(initial?.birthMonth ?? null)
@@ -23,7 +22,9 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
   const [email, setEmail] = useState(initial?.email ?? '')
   const [gender, setGender] = useState<Gender | undefined>(initial?.gender)
   const [city, setCity] = useState(initial?.city ?? '')
+  const [position, setPosition] = useState(initial?.position ?? '')
   const [industry, setIndustry] = useState(initial?.industry ?? '')
+  const [ageInput, setAgeInput] = useState(initial?.age != null ? String(initial.age) : '')
   const [interests, setInterests] = useState<string[]>(initial?.interests ?? [])
   const [consent, setConsent] = useState(initial?.marketingConsent ?? false)
   const [touched, setTouched] = useState(false)
@@ -33,7 +34,10 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
   const errBirth = validateBirth(day, month, year)
   const errEmail = validateEmail(email)
   const errPhone = validatePhone(phone)
-  const invalid = !!(errName || errBirth || errEmail || errPhone)
+  const ageNum = ageInput.trim() === '' ? null : Number(ageInput)
+  const errAge = ageNum != null && (!Number.isInteger(ageNum) || ageNum < 5 || ageNum > 120) ? 'Укажите возраст от 5 до 120' : null
+  const invalid = !!(errName || errBirth || errEmail || errPhone || errAge)
+  const derivedAge = year && day && month ? ageFromProfile({ birthDay: day, birthMonth: month, birthYear: year }) : null
   const hasPhone = phone.trim() !== ''
 
   const submit = (e: React.FormEvent) => {
@@ -42,16 +46,18 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
     if (invalid) return
     const now = new Date().toISOString()
     onSave({
-      v: 2,
+      v: 3,
       name: name.trim(),
       birthDay: day!,
       birthMonth: month!,
       birthYear: year ?? undefined,
+      age: !year && ageNum != null ? ageNum : undefined,
       phone: hasPhone ? normalizePhone(phone) : undefined,
       phoneConsent: hasPhone && phoneConsent,
       email: email.trim() || undefined,
       gender,
       city: city || undefined,
+      position: position.trim() || undefined,
       industry: industry.trim() || undefined,
       interests,
       marketingConsent: consent,
@@ -94,9 +100,20 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
         <span className="muted small">Год можно не указывать — по дню и месяцу мы поздравим. С годом подберём впечатления по возрасту.</span>
       </div>
 
-      {mode === 'edit' && (
-        <>
-          <h3>Дополнительно <span className="muted small">— по желанию</span></h3>
+      <div className="lbl">
+        Возраст
+        {year && derivedAge != null ? (
+          <span className="age-auto">{derivedAge} — считаем по году рождения</span>
+        ) : (
+          <>
+            <input className="field" inputMode="numeric" maxLength={3} value={ageInput} onChange={(e) => setAgeInput(e.target.value.replace(/\D/g, ''))} placeholder="Например, 30" aria-label="Возраст" />
+            {touched && errAge && <span className="err">{errAge}</span>}
+            <span className="muted small">Необязательно. Если указать год рождения, возраст посчитаем сами.</span>
+          </>
+        )}
+      </div>
+
+      <h3>Дополнительно <span className="muted small">— по желанию</span></h3>
 
           <label className="lbl">
             Телефон
@@ -114,7 +131,7 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
             Почта
             <input className="field" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
             {touched && errEmail && <span className="err">{errEmail}</span>}
-            <span className="muted small">Понадобится при регистрации. Сюда будут приходить поздравления.</span>
+            <span className="muted small">Сюда будут приходить поздравления и подборки.</span>
           </label>
 
           <div className="lbl">
@@ -145,12 +162,15 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
           </div>
 
           <label className="lbl">
+            Должность
+            <input className="field" autoComplete="organization-title" maxLength={60} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Например, маркетолог" />
+          </label>
+
+          <label className="lbl">
             Сфера деятельности
-            <input className="field" autoComplete="organization-title" maxLength={60} value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Например, IT, образование, медицина" />
+            <input className="field" maxLength={60} value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Например, IT, образование, медицина" />
             <span className="muted small">Нужна для корпоративных предложений.</span>
           </label>
-        </>
-      )}
 
       <label className="check">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
@@ -158,7 +178,7 @@ export function ProfileForm({ mode, initial, onSave }: Props) {
       </label>
 
       <button type="submit" className="btn btn-ink full">
-        {saved ? 'Сохранено ✓' : mode === 'onboarding' ? 'Сохранить анкету' : 'Сохранить'}
+        {saved ? 'Сохранено ✓' : 'Сохранить'}
       </button>
     </form>
   )

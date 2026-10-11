@@ -1,7 +1,7 @@
 import { UTM_SOURCE } from './config'
 import { getUserId } from './uid'
 
-export type UtmCampaign = 'swipe' | 'wishlist' | 'card' | 'share' | 'about'
+export type UtmCampaign = 'swipe' | 'wishlist' | 'card' | 'share' | 'about' | 'register' | 'profile'
 
 /** Откуда открыто приложение: telegram (Mini App), pwa (установлено на экран), app (браузер). */
 export function entryMedium(): 'telegram' | 'pwa' | 'app' {

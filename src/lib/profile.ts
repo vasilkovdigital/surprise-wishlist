@@ -4,16 +4,18 @@
 export type Gender = 'f' | 'm' | 'o'
 
 export interface Profile {
-  v: 2
+  v: 3
   name: string
   birthDay: number // 1–31, обязательно
   birthMonth: number // 1–12, обязательно
-  birthYear?: number // необязателен; без него возраст не считаем
+  birthYear?: number // необязателен; с ним возраст считается сам
+  age?: number // возраст, указанный вручную (только если год рождения не указан)
   phone?: string // Viber / SMS
   phoneConsent: boolean // отдельное согласие на Viber и SMS
   email?: string
   gender?: Gender
   city?: string // id из config.CITIES или 'other'
+  position?: string // должность
   industry?: string // сфера деятельности (B2B и корпоративные предложения)
   interests: string[] // id из config.INTERESTS
   marketingConsent: boolean // согласие на поздравления и подборки (email)
@@ -65,7 +67,7 @@ export function validatePhone(v: string) {
   return n.length >= 9 && n.length <= 15 ? null : 'Проверьте номер телефона'
 }
 
-/** Возраст — только если указан год рождения. */
+/** Возраст по году рождения (если он указан). */
 export function ageFromProfile(p: Pick<Profile, 'birthDay' | 'birthMonth' | 'birthYear'>, now = new Date()) {
   if (!p.birthYear) return null
   let age = now.getFullYear() - p.birthYear
@@ -98,27 +100,33 @@ export function plural(n: number, one: string, few: string, many: string) {
   return b === 1 ? one : many
 }
 
-/** Данные для CRM/БД. age не хранится — считается из года рождения (если он есть). */
+/** Возраст: из года рождения, а если его нет — указанный вручную. */
+export function effectiveAge(p: Profile) {
+  return ageFromProfile(p) ?? p.age ?? null
+}
+
+/** Данные для CRM/БД: age — вычисленный из года рождения или введённый вручную. */
 export function exportProfile(p: Profile) {
-  return { ...p, age: ageFromProfile(p) }
+  return { ...p, age: effectiveAge(p) }
 }
 
 const CATEGORY_TO_INTEREST: Record<string, string> = {
   spa: 'spa', food: 'food', fly: 'extreme', quest: 'extreme', master: 'creative', creative: 'creative', photo: 'creative', active: 'sport',
 }
 
-/** Приводит сохранённый профиль любой версии к текущей (v2). */
+/** Приводит сохранённый профиль любой версии к текущей (v3). */
 export function migrateProfile(raw: unknown): Profile | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
-  if (r.v === 2) return r as unknown as Profile
+  if (r.v === 3) return r as unknown as Profile
+  if (r.v === 2) return { ...(r as unknown as Profile), v: 3 }
   if (r.v === 1 && typeof r.birthDate === 'string') {
     const [y, m, d] = r.birthDate.split('-').map(Number)
     const interests = Array.isArray(r.interests)
       ? [...new Set((r.interests as string[]).map((c) => CATEGORY_TO_INTEREST[c]).filter(Boolean))]
       : []
     return {
-      v: 2,
+      v: 3,
       name: String(r.name ?? ''),
       birthDay: d,
       birthMonth: m,
@@ -126,7 +134,7 @@ export function migrateProfile(raw: unknown): Profile | null {
       phoneConsent: false,
       email: r.email as string | undefined,
       gender: r.gender as Gender | undefined,
-      industry: r.position as string | undefined,
+      position: r.position as string | undefined,
       interests,
       marketingConsent: !!r.marketingConsent,
       createdAt: String(r.createdAt ?? new Date().toISOString()),

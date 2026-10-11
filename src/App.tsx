@@ -4,18 +4,18 @@ import { Deck } from './components/Deck'
 import { Detail } from './components/Detail'
 import { FilterBar } from './components/FilterBar'
 import { FilterSheet } from './components/FilterSheet'
-import { ProfileForm } from './components/ProfileForm'
-import { ProfilePage } from './components/ProfilePage'
+import { ProfilePage, avatarTone } from './components/ProfilePage'
+import { RegisterModal } from './components/RegisterModal'
 import { SearchSheet } from './components/SearchSheet'
 import { ShareSheet } from './components/ShareSheet'
 import { Wishlist } from './components/Wishlist'
-import { FEATURE_REG_GATE, REG_GATE_AFTER } from './lib/config'
+import { REGISTER_URL } from './lib/config'
 import { activeFilterCount } from './lib/deck'
-import { avatarTone } from './components/ProfilePage'
 import { daysToBirthday, plural } from './lib/profile'
 import { parseSharedHash } from './lib/share'
 import type { Product } from './lib/types'
-import { PROFILE_PROMPT_AFTER, track, useCatalog, useProfile, useSettings, useWishlist } from './state'
+import { withUtm } from './lib/utm'
+import { track, useAccount, useCatalog, useProfile, useSettings, useWishlist, wipeAll } from './state'
 
 type Tab = 'deck' | 'wishlist' | 'profile'
 type ShareTarget = { kind: 'list' } | { kind: 'item'; product: Product }
@@ -23,14 +23,16 @@ type ShareTarget = { kind: 'list' } | { kind: 'item'; product: Product }
 export default function App() {
   const { products, meta, error } = useCatalog()
   const { settings, updateSettings } = useSettings()
-  const w = useWishlist(products, settings.recyclePassed)
-  const { profile, asked, markAsked, saveProfile, wipe } = useProfile()
+  const { account, setAccount } = useAccount()
+  const registered = account.registered
+  const w = useWishlist(products, settings.recyclePassed, registered)
+  const { profile: savedProfile, saveProfile } = useProfile()
+  // Анкета есть только у зарегистрированных (синхронизируется с аккаунтом)
+  const profile = registered ? savedProfile : null
   const [tab, setTab] = useState<Tab>('deck')
   const [open, setOpen] = useState<Product | null>(null)
   const [sharing, setSharing] = useState<ShareTarget | null>(null)
   const [hash, setHash] = useState(location.hash)
-  const [gate, setGate] = useState(false)
-  const [askProfile, setAskProfile] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -41,15 +43,28 @@ export default function App() {
     return () => window.removeEventListener('hashchange', h)
   }, [])
 
-  // После 10-го свайпа один раз предлагаем заполнить анкету
-  const swipeCount = w.swipes.length
+  // Напоминание о регистрации: каждые 10 свайпов или каждые 3 сохранения
+  const overlayOpen = !!(open || sharing || searchOpen || aboutOpen || filtersOpen)
+  const showRegister = w.promptDue && !overlayOpen && tab !== 'profile'
   useEffect(() => {
-    if (!profile && !asked && swipeCount >= PROFILE_PROMPT_AFTER) {
-      setAskProfile(true)
-      markAsked()
-      track('profile_prompt_shown', { swipes: swipeCount })
+    if (showRegister) track('register_prompt_shown')
+  }, [showRegister])
+
+  // Демо: имитация регистрации (в продакшене статус приходит от аккаунта surprise.by)
+  const toggleDemoRegistration = () => {
+    if (registered) {
+      setAccount({ registered: false })
+      return
     }
-  }, [swipeCount, profile, asked, markAsked])
+    if (!savedProfile) {
+      const now = new Date().toISOString()
+      saveProfile({
+        v: 3, name: 'Анна', birthDay: 25, birthMonth: 10, birthYear: 1995, phoneConsent: false,
+        interests: [], marketingConsent: false, createdAt: now, updatedAt: now,
+      })
+    }
+    setAccount({ registered: true, email: 'anna@example.com', since: new Date().toISOString() })
+  }
 
   if (error) return <div className="empty"><h2>Не удалось загрузить каталог</h2><p>Выполните <code>npm run sync</code>.</p></div>
   if (!products) return <div className="empty"><p className="muted">Загружаем впечатления…</p></div>
@@ -100,10 +115,6 @@ export default function App() {
 
   const likedItems = w.liked.map((id) => w.byId.get(id)).filter((p): p is Product => !!p)
   const openCard = (p: Product) => { setOpen(p); track('open_card', { id: p.id }) }
-  const onLike = (id: string) => {
-    w.like(id)
-    if (FEATURE_REG_GATE && w.liked.length + 1 > REG_GATE_AFTER) setGate(true)
-  }
 
   let nudge: string | null = null
   if (profile) {
@@ -159,7 +170,7 @@ export default function App() {
             canUndo={w.swipes.length > 0}
             likedCount={w.liked.length}
             recyclePassed={settings.recyclePassed}
-            onLike={onLike}
+            onLike={w.like}
             onPass={w.pass}
             onUndo={w.undo}
             onOpen={openCard}
@@ -173,6 +184,7 @@ export default function App() {
             title={profile ? `Вишлист: ${profile.name}` : 'Мой вишлист'}
             meta={meta}
             nudge={nudge}
+            retention={registered ? undefined : { expiresAt: w.expiresAt, registerHref: withUtm(REGISTER_URL, 'register') }}
             onOpen={openCard}
             onRemove={w.toggle}
             onShare={() => setSharing({ kind: 'list' })}
@@ -180,7 +192,17 @@ export default function App() {
           />
         )}
         {tab === 'profile' && (
-          <ProfilePage profile={profile} settings={settings} onSettings={updateSettings} onSave={saveProfile} onDelete={wipe} />
+          <ProfilePage
+            registered={registered}
+            email={account.email}
+            profile={profile}
+            settings={settings}
+            retention={{ count: w.liked.length, expiresAt: w.expiresAt }}
+            onSettings={updateSettings}
+            onSave={saveProfile}
+            onDelete={wipeAll}
+            onDemoToggle={toggleDemoRegistration}
+          />
         )}
       </main>
       <nav className="tabs">
@@ -219,32 +241,7 @@ export default function App() {
       {filtersOpen && (
         <FilterSheet products={products} initial={w.filters} onApply={w.applyFilters} onClose={() => setFiltersOpen(false)} />
       )}
-      {askProfile && !profile && (
-        <div className="sheet-back" onClick={() => setAskProfile(false)}>
-          <div className="sheet sheet-small" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-body">
-              <h2>Расскажите о себе</h2>
-              <p className="muted">Вы уже посмотрели {PROFILE_PROMPT_AFTER} впечатлений. Заполните анкету — поздравим с днём рождения и подскажем подарки к празднику.</p>
-              <ProfileForm
-                mode="onboarding"
-                onSave={(p) => { saveProfile(p); setAskProfile(false) }}
-              />
-              <button className="btn btn-ghost" onClick={() => setAskProfile(false)}>Позже</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {gate && (
-        <div className="sheet-back" onClick={() => setGate(false)}>
-          <div className="sheet sheet-small" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-body">
-              <h2>Сохраните вишлист</h2>
-              <p className="muted">В будущем здесь регистрация: почта и пароль; данные анкеты подтянутся из профиля. Пока это заглушка.</p>
-              <button className="btn btn-ink" onClick={() => setGate(false)}>Понятно</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showRegister && <RegisterModal onClose={w.ackPrompt} />}
     </div>
   )
 }

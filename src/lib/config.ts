@@ -1,7 +1,14 @@
 // Всё, что маркетинг захочет поменять без правки компонентов.
 export const APP_NAME = 'Wish-list'
-export const FEATURE_REG_GATE = false // true: после 3-го лайка показывать заглушку регистрации
-export const REG_GATE_AFTER = 3
+
+// Регистрация проходит на surprise.by (аккаунт сайта — единый для сайта и приложения).
+// TODO: заменить на точный адрес страницы регистрации.
+export const REGISTER_URL = 'https://surprise.by/'
+/** Срок хранения данных незарегистрированного пользователя, дней */
+export const DATA_TTL_DAYS = 3
+/** Напоминание о регистрации: каждые N свайпов или каждые N сохранений — что наступит раньше */
+export const PROMPT_EVERY_SWIPES = 10
+export const PROMPT_EVERY_LIKES = 3
 export const BONUS = {
   title: 'Бонус за заказ через приложение',
   text: 'Оформите заказ по ссылке из вишлиста — и получите бонус от Surprise.by',

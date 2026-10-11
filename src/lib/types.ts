@@ -42,5 +42,6 @@ export interface Settings {
   recyclePassed: boolean
 }
 
-export interface Swipe { id: string; d: 'like' | 'pass' }
+export interface Swipe { id: string; d: 'like' | 'pass'; at?: number }
+export interface LikedItem { id: string; at: number }
 export interface Meta { syncedAt: string; count: number }

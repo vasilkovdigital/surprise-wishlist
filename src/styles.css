@@ -228,3 +228,19 @@ a.btn.btn-ink { color: #fff; }
 .tg-card div { display: flex; flex-direction: column; gap: 2px; font-size: 14px; line-height: 1.35; }
 .tg-card span { color: var(--ink-soft); font-size: 13px; }
 .tg-card .btn { grid-column: 1 / -1; min-height: 44px; }
+
+/* v8: регистрация, срок хранения, анкета зарегистрированного */
+.reg-card { background: var(--confetti-purple); border-radius: 20px; padding: 16px; margin: 8px 0 4px; display: flex; flex-direction: column; gap: 8px; }
+.reg-card h2 { font-size: 19px; }
+.reg-card p { margin: 0; font-size: 14px; }
+.reg-card .full { margin: 4px 0 0; }
+.perks { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 2px; }
+.reg-timer { font-weight: 600; }
+.keep { display: flex; flex-direction: column; gap: 6px; background: var(--confetti-purple); border-radius: 16px; padding: 12px 14px; margin: 8px 0; font-size: 14px; }
+.keep span { font-size: 13px; }
+.keep .btn { min-height: 42px; align-self: flex-start; }
+.synced { display: flex; flex-direction: column; gap: 4px; background: var(--confetti-green); border-radius: 16px; padding: 12px 14px; margin: 8px 0; font-size: 14px; }
+.synced span { font-size: 13px; }
+.synced .link { align-self: flex-start; padding: 4px 0; }
+.link.demo { display: block; margin: 16px auto 0; color: var(--ink-soft); font-size: 13px; }
+.age-auto { font-weight: 500; font-size: 15px; }

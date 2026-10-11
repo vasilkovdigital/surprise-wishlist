@@ -1,4 +1,7 @@
+import { DATA_TTL_DAYS } from '../lib/config'
+import { formatRemaining } from '../lib/retention'
 import type { Meta, Product } from '../lib/types'
+import { track } from '../state'
 import { imgSrc } from '../state'
 import { BonusBanner } from './BonusBanner'
 
@@ -12,9 +15,11 @@ interface Props {
   onShare?: () => void
   onBackToDeck: () => void
   nudge?: string | null
+  /** Только для незарегистрированных: срок хранения и ссылка на регистрацию */
+  retention?: { expiresAt: number | null; registerHref: string }
 }
 
-export function Wishlist({ items, readOnly, title, meta, onOpen, onRemove, onShare, onBackToDeck, nudge }: Props) {
+export function Wishlist({ items, readOnly, title, meta, onOpen, onRemove, onShare, onBackToDeck, nudge, retention }: Props) {
   const real = items.filter((i): i is Product => 'id' in i)
   const total = real.reduce((s, p) => s + p.priceByn, 0)
 
@@ -33,6 +38,18 @@ export function Wishlist({ items, readOnly, title, meta, onOpen, onRemove, onSha
     <div className="wl">
       <h1>{title}</h1>
       <p className="muted">{real.length} впечатл. · итого ≈ {total} BYN</p>
+      {!readOnly && retention && (
+        <div className="keep">
+          <strong>Вишлист хранится {DATA_TTL_DAYS} дня</strong>
+          <span>
+            {retention.expiresAt != null && `Самое раннее впечатление удалится через ${formatRemaining(retention.expiresAt - Date.now())}. `}
+            Зарегистрируйтесь бесплатно — и список сохранится.
+          </span>
+          <a className="btn btn-ink" href={retention.registerHref} target="_blank" rel="noopener" onClick={() => track('register_click', { from: 'wishlist' })}>
+            Зарегистрироваться
+          </a>
+        </div>
+      )}
       {!readOnly && nudge && <div className="nudge">{nudge}</div>}
       {!readOnly && onShare && <button className="btn btn-green full" onClick={onShare}>Поделиться вишлистом</button>}
       <div className="grid">
