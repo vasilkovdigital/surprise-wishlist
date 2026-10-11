@@ -159,3 +159,14 @@ p { margin: 0 0 12px; line-height: 1.45; }
 .sicon { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--ink); background: var(--surface-100); color: var(--ink); display: grid; place-items: center; text-decoration: none; padding: 0; }
 .sicon:hover { background: var(--confetti-green); }
 .share-note { min-height: 20px; margin: 8px 0 0; }
+
+/* v4: полные фильтры и анкета */
+.chip-btn.on-ink { background: var(--ink); color: #fff; }
+.chip-btn .count { margin-left: 6px; background: var(--confetti-pink); color: var(--ink); border-radius: 999px; padding: 0 7px; font-size: 12px; }
+.chip-btn { display: inline-flex; align-items: center; gap: 6px; }
+.filters-body { gap: 14px; }
+.price-row { display: flex; align-items: center; gap: 8px; }
+.price-row .field { margin: 0; }
+.birth-row { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 8px; }
+.birth-row .field { margin: 0; padding-right: 6px; }
+select.field { background: #fff; }

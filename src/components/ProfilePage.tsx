@@ -1,5 +1,5 @@
 import {
-  ageFromBirth, daysToBirthday, exportProfile, formatBirth, plural, type Profile,
+  ageFromProfile, daysToBirthday, exportProfile, formatBirth, plural, type Profile,
 } from '../lib/profile'
 import type { Settings } from '../lib/types'
 import { ProfileForm } from './ProfileForm'
@@ -54,8 +54,8 @@ export function ProfilePage({ profile, settings, onSettings, onSave, onDelete }:
     )
   }
 
-  const age = ageFromBirth(profile.birthDate)
-  const days = daysToBirthday(profile.birthDate)
+  const age = ageFromProfile(profile)
+  const days = daysToBirthday(profile.birthDay, profile.birthMonth)
 
   return (
     <div className="profile">
@@ -64,7 +64,7 @@ export function ProfilePage({ profile, settings, onSettings, onSave, onDelete }:
         <div>
           <h1>{profile.name}</h1>
           <p className="muted">
-            {formatBirth(profile.birthDate)} · {age} {plural(age, 'год', 'года', 'лет')}
+            {formatBirth(profile)}{age != null && ` · ${age} ${plural(age, 'год', 'года', 'лет')}`}
           </p>
         </div>
       </div>

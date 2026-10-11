@@ -31,3 +31,37 @@ export const CATEGORIES: Record<string, string> = {
 }
 
 export const GIFTCARD_TAGS = ['Подарочные карты магазинов', 'Подарочные наборы', 'Подарочные сертификаты', 'Адвент-календари', 'Комбо в подарок']
+
+// ---- Признаки, которых нет в фиде отдельными полями: выводим по тегам и тексту ----
+// (эвристика; когда сайт добавит в фид поля city / age_group / interests — заменить)
+
+export const CITY_RULES: Array<{ id: string; re: RegExp }> = [
+  { id: 'minsk', re: /минск/i },
+  { id: 'brest', re: /брест/i },
+  { id: 'grodno', re: /гродн/i },
+  { id: 'gomel', re: /гомел/i },
+  { id: 'vitebsk', re: /витебск/i },
+  { id: 'mogilev', re: /могил[её]в/i },
+]
+
+export const INTEREST_RULES: Array<{ id: string; categories?: string[]; re?: RegExp }> = [
+  { id: 'spa', categories: ['spa'], re: /\bспа\b|spa|массаж|хаммам|сауна|баня|аквазон/i },
+  { id: 'food', categories: ['food'], re: /дегустац|ужин|ресторан|кулинар|бранч|вино|сыр|шоколад|кофе|пицц|суши/i },
+  { id: 'extreme', categories: ['fly'], re: /прыж|парашют|дайвинг|дрифт|картинг|аэротруб|дельтаплан|полет|полёт|квадроцикл|рафтинг|банджи|rope|вингсьют|багги|экстрим|скалолаз/i },
+  { id: 'creative', categories: ['master', 'creative', 'photo'], re: /мастер-класс|рисован|гончар|керамик|свеч|мыло|фотосесс|творч|вышив|скульптур/i },
+  { id: 'sport', categories: ['active'], re: /фитнес|йога|тренировк|стрельб|плаван|сёрф|серф|лыж|коньк|скалодром|страйкбол|боулинг|теннис|вейк|сап\b/i },
+  { id: 'romance', re: /романти|свидани|для двоих|вдвоем|вдвоём|для пары|пары\b/i },
+]
+
+/** child ≤12, teen 13–17, adult 18–44, senior 45+ */
+export function deriveAgeGroups(tags: string[], text: string): string[] {
+  const kids = tags.includes('Детям') || /детск|ребён|ребен|для детей|школьник/i.test(text)
+  const family = tags.includes('Отдых для всей семьи')
+  const parents = tags.includes('Родителям') || tags.includes('Подарки бабушке и дедушке')
+  const g = new Set<string>()
+  if (kids) { g.add('child'); g.add('teen') }
+  if (family) { g.add('child'); g.add('teen'); g.add('adult') }
+  if (parents) { g.add('adult'); g.add('senior') }
+  if (!kids && !family) g.add('adult')
+  return [...g]
+}

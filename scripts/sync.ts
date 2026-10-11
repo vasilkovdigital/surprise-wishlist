@@ -4,7 +4,7 @@ import Papa from 'papaparse'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { AUDIENCE, CATEGORIES, GIFTCARD_TAGS, OCCASIONS } from './taxonomy'
+import { AUDIENCE, CATEGORIES, CITY_RULES, deriveAgeGroups, GIFTCARD_TAGS, INTEREST_RULES, OCCASIONS } from './taxonomy'
 
 const FEED = 'https://surprise.by/google_merchant.csv'
 const OUT = path.resolve('public/data')
@@ -36,6 +36,8 @@ async function main() {
     if (!id || seen.has(id) || !r.link || !r.image_link || !(priceByn > 0)) continue
     seen.add(id)
     const tags = (r.product_type || '').split(',').map((t) => t.trim()).filter(Boolean)
+    const text = `${r.title} ${r.description}`
+    const categories = uniq(tags.map((t) => CATEGORIES[t]).filter(Boolean))
     products.push({
       id,
       title: r.title.trim(),
@@ -47,7 +49,10 @@ async function main() {
       priceByn,
       audience: uniq(tags.map((t) => AUDIENCE[t]).filter(Boolean)),
       occasions: uniq(tags.map((t) => OCCASIONS[t]).filter(Boolean)),
-      categories: uniq(tags.map((t) => CATEGORIES[t]).filter(Boolean)),
+      categories,
+      interests: INTEREST_RULES.filter((x) => x.categories?.some((c) => categories.includes(c)) || x.re?.test(text)).map((x) => x.id),
+      cities: CITY_RULES.filter((c) => c.re.test(text)).map((c) => c.id),
+      ageGroups: deriveAgeGroups(tags, text),
       priceBucket: bucket(priceByn),
       isGiftCard: tags.some((t) => GIFTCARD_TAGS.includes(t)) || /^(набор|универсальный)/i.test(r.title.trim()),
     })

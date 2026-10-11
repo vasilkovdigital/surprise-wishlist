@@ -13,13 +13,27 @@ export interface Product {
   audience: string[]
   occasions: string[]
   categories: string[]
+  interests: string[]
+  /** пусто = город неизвестен (показывается в любом городе) */
+  cities: string[]
+  ageGroups: string[]
   priceBucket: Bucket
   isGiftCard: boolean
 }
 
-/** Единственный значимый фильтр — категория (тип впечатления). null = всё. */
 export interface Filters {
-  category: string | null
+  category: string | null // быстрый фильтр над колодой
+  city: string | null
+  interests: string[]
+  priceMin: number | null // BYN
+  priceMax: number | null
+  age: string | null // child | teen | adult | senior (возраст получателя)
+  gender: 'her' | 'him' | null // для неё / для него
+  occasion: string | null
+}
+
+export const NO_FILTERS: Filters = {
+  category: null, city: null, interests: [], priceMin: null, priceMax: null, age: null, gender: null, occasion: null,
 }
 
 /** Настройки приложения; живут отдельно от профиля и доступны без анкеты. */

@@ -1,16 +1,22 @@
 // Профиль хранится локально (wl.profile). Формат версионирован: при регистрации
 // объект уходит в БД как есть (см. exportProfile) — поле `v` задаёт схему.
+// Поля — по таблице «4.2 Профиль клиента» (без «Кому дарите»: анкета для тех, кому дарят).
 export type Gender = 'f' | 'm' | 'o'
 
 export interface Profile {
-  v: 1
+  v: 2
   name: string
-  birthDate: string // YYYY-MM-DD
+  birthDay: number // 1–31, обязательно
+  birthMonth: number // 1–12, обязательно
+  birthYear?: number // необязателен; без него возраст не считаем
+  phone?: string // Viber / SMS
+  phoneConsent: boolean // отдельное согласие на Viber и SMS
   email?: string
   gender?: Gender
-  position?: string
-  interests: string[] // id категорий из config.CATEGORY_LABELS
-  marketingConsent: boolean // согласие на CRM-рассылки (поздравления, предложения)
+  city?: string // id из config.CITIES или 'other'
+  industry?: string // сфера деятельности (B2B и корпоративные предложения)
+  interests: string[] // id из config.INTERESTS
+  marketingConsent: boolean // согласие на поздравления и подборки (email)
   createdAt: string
   updatedAt: string
 }
@@ -21,7 +27,7 @@ export const GENDERS: Array<{ id: Gender; label: string }> = [
   { id: 'o', label: 'Другое' },
 ]
 
-export const todayIso = () => new Date().toISOString().slice(0, 10)
+export const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 
 export function validateName(v: string) {
   const s = v.trim()
@@ -30,12 +36,16 @@ export function validateName(v: string) {
   return null
 }
 
-export function validateBirth(v: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'Укажите дату рождения'
-  const d = new Date(v + 'T00:00:00')
-  if (Number.isNaN(d.getTime())) return 'Некорректная дата'
-  if (v > todayIso()) return 'Дата не может быть в будущем'
-  if (v < '1900-01-01') return 'Проверьте год рождения'
+/** День и месяц обязательны, год — нет. */
+export function validateBirth(day: number | null, month: number | null, year: number | null, now = new Date()) {
+  if (!day || !month) return 'Укажите день и месяц рождения'
+  const probe = year ?? 2000 // високосный, чтобы 29 февраля проходило без года
+  const d = new Date(probe, month - 1, day)
+  if (d.getMonth() !== month - 1 || d.getDate() !== day) return 'Такой даты не существует'
+  if (year != null) {
+    if (year < 1900 || year > now.getFullYear()) return 'Проверьте год рождения'
+    if (d > now) return 'Дата не может быть в будущем'
+  }
   return null
 }
 
@@ -44,25 +54,40 @@ export function validateEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? null : 'Проверьте почту'
 }
 
-export function ageFromBirth(iso: string, now = new Date()) {
-  const [y, m, d] = iso.split('-').map(Number)
-  let age = now.getFullYear() - y
-  if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--
+export function normalizePhone(v: string) {
+  const digits = v.replace(/[^\d+]/g, '')
+  return digits.startsWith('+') ? '+' + digits.slice(1).replace(/\+/g, '') : digits.replace(/\+/g, '')
+}
+
+export function validatePhone(v: string) {
+  if (!v.trim()) return null
+  const n = normalizePhone(v).replace(/\D/g, '')
+  return n.length >= 9 && n.length <= 15 ? null : 'Проверьте номер телефона'
+}
+
+/** Возраст — только если указан год рождения. */
+export function ageFromProfile(p: Pick<Profile, 'birthDay' | 'birthMonth' | 'birthYear'>, now = new Date()) {
+  if (!p.birthYear) return null
+  let age = now.getFullYear() - p.birthYear
+  if (now.getMonth() + 1 < p.birthMonth || (now.getMonth() + 1 === p.birthMonth && now.getDate() < p.birthDay)) age--
   return age
 }
 
 /** Сколько дней до ближайшего дня рождения (0 — сегодня). */
-export function daysToBirthday(iso: string, now = new Date()) {
-  const [, m, d] = iso.split('-').map(Number)
+export function daysToBirthday(day: number, month: number, now = new Date()) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  let next = new Date(now.getFullYear(), m - 1, d)
-  if (next < today) next = new Date(now.getFullYear() + 1, m - 1, d)
+  // 29 февраля в невисокосный год празднуем 1 марта
+  const at = (y: number) => {
+    const d = new Date(y, month - 1, day)
+    return d.getMonth() === month - 1 ? d : new Date(y, 2, 1)
+  }
+  let next = at(now.getFullYear())
+  if (next < today) next = at(now.getFullYear() + 1)
   return Math.round((next.getTime() - today.getTime()) / 86_400_000)
 }
 
-export function formatBirth(iso: string) {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+export function formatBirth(p: Pick<Profile, 'birthDay' | 'birthMonth' | 'birthYear'>) {
+  return `${p.birthDay} ${MONTHS[p.birthMonth - 1]}${p.birthYear ? ` ${p.birthYear}` : ''}`
 }
 
 export function plural(n: number, one: string, few: string, many: string) {
@@ -73,7 +98,40 @@ export function plural(n: number, one: string, few: string, many: string) {
   return b === 1 ? one : many
 }
 
-/** Данные для CRM/БД. age не хранится — считается из birthDate. */
+/** Данные для CRM/БД. age не хранится — считается из года рождения (если он есть). */
 export function exportProfile(p: Profile) {
-  return { ...p, age: ageFromBirth(p.birthDate) }
+  return { ...p, age: ageFromProfile(p) }
+}
+
+const CATEGORY_TO_INTEREST: Record<string, string> = {
+  spa: 'spa', food: 'food', fly: 'extreme', quest: 'extreme', master: 'creative', creative: 'creative', photo: 'creative', active: 'sport',
+}
+
+/** Приводит сохранённый профиль любой версии к текущей (v2). */
+export function migrateProfile(raw: unknown): Profile | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  if (r.v === 2) return r as unknown as Profile
+  if (r.v === 1 && typeof r.birthDate === 'string') {
+    const [y, m, d] = r.birthDate.split('-').map(Number)
+    const interests = Array.isArray(r.interests)
+      ? [...new Set((r.interests as string[]).map((c) => CATEGORY_TO_INTEREST[c]).filter(Boolean))]
+      : []
+    return {
+      v: 2,
+      name: String(r.name ?? ''),
+      birthDay: d,
+      birthMonth: m,
+      birthYear: y,
+      phoneConsent: false,
+      email: r.email as string | undefined,
+      gender: r.gender as Gender | undefined,
+      industry: r.position as string | undefined,
+      interests,
+      marketingConsent: !!r.marketingConsent,
+      createdAt: String(r.createdAt ?? new Date().toISOString()),
+      updatedAt: String(r.updatedAt ?? new Date().toISOString()),
+    }
+  }
+  return null
 }

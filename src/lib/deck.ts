@@ -8,7 +8,26 @@ function rng(seed: number) {
 }
 
 export function matches(p: Product, f: Filters) {
-  return !f.category || p.categories.includes(f.category)
+  if (f.category && !p.categories.includes(f.category)) return false
+  // город в фиде известен не у всех: без города показываем везде
+  if (f.city && p.cities.length > 0 && !p.cities.includes(f.city)) return false
+  if (f.interests.length > 0 && !f.interests.some((i) => p.interests.includes(i))) return false
+  if (f.priceMin != null && p.priceByn < f.priceMin) return false
+  if (f.priceMax != null && p.priceByn > f.priceMax) return false
+  if (f.age && !p.ageGroups.includes(f.age)) return false
+  // пол: подходящие по тегам + нейтральные (без тегов «ей/ему»)
+  if (f.gender) {
+    const gendered = p.audience.includes('her') || p.audience.includes('him')
+    if (gendered && !p.audience.includes(f.gender)) return false
+  }
+  if (f.occasion && !p.occasions.includes(f.occasion)) return false
+  return true
+}
+
+/** Сколько фильтров активно (интересы считаются за один, цена — за один). */
+export function activeFilterCount(f: Filters) {
+  return [f.category, f.city, f.interests.length ? 1 : null, f.priceMin != null || f.priceMax != null ? 1 : null, f.age, f.gender, f.occasion]
+    .filter((x) => x != null).length
 }
 
 /**

@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { Deck } from './components/Deck'
 import { Detail } from './components/Detail'
 import { FilterBar } from './components/FilterBar'
+import { FilterSheet } from './components/FilterSheet'
 import { ProfileForm } from './components/ProfileForm'
 import { ProfilePage } from './components/ProfilePage'
 import { ShareSheet } from './components/ShareSheet'
 import { Wishlist } from './components/Wishlist'
 import { FEATURE_REG_GATE, REG_GATE_AFTER } from './lib/config'
+import { activeFilterCount } from './lib/deck'
 import { daysToBirthday, plural } from './lib/profile'
 import { parseSharedHash } from './lib/share'
 import type { Product } from './lib/types'
@@ -26,6 +28,7 @@ export default function App() {
   const [hash, setHash] = useState(location.hash)
   const [gate, setGate] = useState(false)
   const [askProfile, setAskProfile] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     const h = () => setHash(location.hash)
@@ -99,7 +102,7 @@ export default function App() {
 
   let nudge: string | null = null
   if (profile) {
-    const days = daysToBirthday(profile.birthDate)
+    const days = daysToBirthday(profile.birthDay, profile.birthMonth)
     if (days <= 30) {
       nudge = days === 0
         ? 'С днём рождения! 🎉 Отправьте вишлист друзьям — пусть выберут подарок.'
@@ -112,7 +115,15 @@ export default function App() {
       <header className="top">
         <img src="brand/logo_main_dark.svg" alt="Surprise" height="26" />
       </header>
-      {tab === 'deck' && <FilterBar products={products} value={w.filters.category} onChange={w.setCategory} />}
+      {tab === 'deck' && (
+        <FilterBar
+          products={products}
+          category={w.filters.category}
+          activeCount={activeFilterCount(w.filters)}
+          onCategory={w.setCategory}
+          onOpenFilters={() => setFiltersOpen(true)}
+        />
+      )}
       <main className="main">
         {tab === 'deck' && (
           <Deck
@@ -169,6 +180,9 @@ export default function App() {
           senderName={profile?.name}
           onClose={() => setSharing(null)}
         />
+      )}
+      {filtersOpen && (
+        <FilterSheet products={products} initial={w.filters} onApply={w.applyFilters} onClose={() => setFiltersOpen(false)} />
       )}
       {askProfile && !profile && (
         <div className="sheet-back" onClick={() => setAskProfile(false)}>

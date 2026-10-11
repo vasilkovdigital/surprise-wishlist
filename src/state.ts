@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildDeck } from './lib/deck'
-import type { Profile } from './lib/profile'
+import { migrateProfile, type Profile } from './lib/profile'
 import { load, save } from './lib/storage'
-import type { Filters, Meta, Product, Settings, Swipe } from './lib/types'
+import { NO_FILTERS, type Filters, type Meta, type Product, type Settings, type Swipe } from './lib/types'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -23,7 +23,13 @@ export function useCatalog() {
   const [meta, setMeta] = useState<Meta | null>(null)
   const [error, setError] = useState(false)
   useEffect(() => {
-    fetch(BASE + 'data/products.json').then((r) => r.json()).then(setProducts).catch(() => setError(true))
+    // Дефолты для полей, которых может не быть в закэшированном/старом снимке каталога
+    fetch(BASE + 'data/products.json')
+      .then((r) => r.json())
+      .then((list: Product[]) =>
+        setProducts(list.map((p) => ({ ...p, interests: p.interests ?? [], cities: p.cities ?? [], ageGroups: p.ageGroups ?? ['adult'] }))),
+      )
+      .catch(() => setError(true))
     fetch(BASE + 'data/meta.json').then((r) => r.json()).then(setMeta).catch(() => {})
   }, [])
   return { products, meta, error }
@@ -45,10 +51,7 @@ export function useSettings() {
 export function useWishlist(products: Product[] | null, recyclePassed: boolean) {
   const [liked, setLiked] = useState<string[]>(() => load('wl.liked', []))
   const [swipes, setSwipes] = useState<Swipe[]>(() => load('wl.swipes', []))
-  const [filters, setFilters] = useState<Filters>(() => {
-    const f = load<Partial<Filters>>('wl.filters', {}) // старый формат (who/budget/occasion) игнорируем
-    return { category: typeof f.category === 'string' ? f.category : null }
-  })
+  const [filters, setFilters] = useState<Filters>(() => ({ ...NO_FILTERS, ...load<Partial<Filters>>('wl.filters', {}) }))
   const [seed] = useState<number>(() => {
     const s = load<number>('wl.seed', 0) || Math.floor(Math.random() * 2 ** 31)
     save('wl.seed', s)
@@ -87,15 +90,19 @@ export function useWishlist(products: Product[] | null, recyclePassed: boolean) 
   }, [])
   const resetPassed = useCallback(() => setSwipes((s) => s.filter((x) => x.d === 'like')), [])
   const setCategory = useCallback((category: string | null) => {
-    setFilters({ category })
+    setFilters((f) => ({ ...f, category }))
     track('filter_set', { category })
   }, [])
+  const applyFilters = useCallback((f: Filters) => {
+    setFilters(f)
+    track('filter_set', { ...f })
+  }, [])
 
-  return { liked, swipes, filters, deck, byId, like, pass, undo, toggle, resetPassed, setCategory }
+  return { liked, swipes, filters, deck, byId, like, pass, undo, toggle, resetPassed, setCategory, applyFilters }
 }
 
 export function useProfile() {
-  const [profile, setProfile] = useState<Profile | null>(() => load<Profile | null>('wl.profile', null))
+  const [profile, setProfile] = useState<Profile | null>(() => migrateProfile(load<unknown>('wl.profile', null)))
   const [asked, setAsked] = useState<boolean>(() => load('wl.profileAsked', false))
   const saveProfile = useCallback((p: Profile) => {
     setProfile(p)
