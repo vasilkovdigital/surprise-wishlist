@@ -93,12 +93,16 @@ export function useWishlist(products: Product[] | null, recyclePassed: boolean) 
     setFilters((f) => ({ ...f, category }))
     track('filter_set', { category })
   }, [])
+  const setOccasion = useCallback((occasion: string | null) => {
+    setFilters((f) => ({ ...f, occasion }))
+    track('filter_set', { occasion })
+  }, [])
   const applyFilters = useCallback((f: Filters) => {
     setFilters(f)
     track('filter_set', { ...f })
   }, [])
 
-  return { liked, swipes, filters, deck, byId, like, pass, undo, toggle, resetPassed, setCategory, applyFilters }
+  return { liked, swipes, filters, deck, byId, like, pass, undo, toggle, resetPassed, setCategory, setOccasion, applyFilters }
 }
 
 export function useProfile() {

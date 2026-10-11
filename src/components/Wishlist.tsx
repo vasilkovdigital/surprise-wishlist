@@ -23,7 +23,7 @@ export function Wishlist({ items, readOnly, title, meta, onOpen, onRemove, onSha
       <div className="empty">
         <img src="brand/mark_smile_dark.svg" alt="" width="72" />
         <h2>Пока пусто</h2>
-        <p>Свайпайте вправо те впечатления, которые хочется попробовать.</p>
+        <p>Нажимайте ♥ на впечатлениях, которые хочется получить в подарок, — они соберутся здесь.</p>
         <button className="btn btn-ink" onClick={onBackToDeck}>К впечатлениям</button>
       </div>
     )

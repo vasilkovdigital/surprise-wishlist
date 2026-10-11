@@ -6,6 +6,7 @@ import { FilterBar } from './components/FilterBar'
 import { FilterSheet } from './components/FilterSheet'
 import { ProfileForm } from './components/ProfileForm'
 import { ProfilePage } from './components/ProfilePage'
+import { SearchSheet } from './components/SearchSheet'
 import { ShareSheet } from './components/ShareSheet'
 import { Wishlist } from './components/Wishlist'
 import { FEATURE_REG_GATE, REG_GATE_AFTER } from './lib/config'
@@ -31,6 +32,7 @@ export default function App() {
   const [askProfile, setAskProfile] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     const h = () => setHash(location.hash)
@@ -116,14 +118,21 @@ export default function App() {
     <div className="app">
       <header className="top">
         <img src="brand/logo_main_dark.svg" alt="Surprise" height="26" />
-        <button className="link" onClick={() => { setAboutOpen(true); track('about_open') }}>О приложении</button>
+        <div className="top-actions">
+          <button className="icon-btn" aria-label="Поиск" onClick={() => { setSearchOpen(true); track('search_open') }}>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          </button>
+          <button className="link" onClick={() => { setAboutOpen(true); track('about_open') }}>О приложении</button>
+        </div>
       </header>
       {tab === 'deck' && (
         <FilterBar
           products={products}
           category={w.filters.category}
+          occasion={w.filters.occasion}
           activeCount={activeFilterCount(w.filters)}
           onCategory={w.setCategory}
+          onOccasion={w.setOccasion}
           onOpenFilters={() => setFiltersOpen(true)}
         />
       )}
@@ -182,6 +191,13 @@ export default function App() {
           itemTitle={sharing.kind === 'item' ? sharing.product.title : undefined}
           senderName={profile?.name}
           onClose={() => setSharing(null)}
+        />
+      )}
+      {searchOpen && (
+        <SearchSheet
+          products={products}
+          onOpen={(p) => { setSearchOpen(false); openCard(p) }}
+          onClose={() => setSearchOpen(false)}
         />
       )}
       {aboutOpen && <AboutSheet meta={meta} count={products.length} onClose={() => setAboutOpen(false)} />}
