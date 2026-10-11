@@ -7,6 +7,7 @@ export const BONUS = {
   text: 'Оформите заказ по ссылке из вишлиста — и получите бонус от Surprise.by',
 }
 export const UTM_SOURCE = 'wishlist_app'
+export const TELEGRAM_CHANNEL = 'https://t.me/mysurpriseby'
 
 export const CATEGORY_LABELS: Record<string, string> = {
   active: 'Активный отдых', spa: 'СПА и красота', master: 'Мастер-класс', food: 'Бары и рестораны',

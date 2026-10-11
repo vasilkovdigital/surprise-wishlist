@@ -21,7 +21,7 @@ export function FilterBar({ products, category, occasion, activeCount, onCategor
   return (
     <div className="filter-rows">
       <div className="filters" role="toolbar" aria-label="Категории">
-        <button className={`chip-btn ${activeCount > 0 ? 'on-ink' : ''}`} onClick={onOpenFilters}>
+        <button className={`chip-btn cta-filter ${activeCount > 0 ? 'on-ink' : ''}`} onClick={onOpenFilters}>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
             <path d="M4 6h16M7 12h10M10 18h4" />
           </svg>

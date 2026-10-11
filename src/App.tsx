@@ -11,6 +11,7 @@ import { ShareSheet } from './components/ShareSheet'
 import { Wishlist } from './components/Wishlist'
 import { FEATURE_REG_GATE, REG_GATE_AFTER } from './lib/config'
 import { activeFilterCount } from './lib/deck'
+import { avatarTone } from './components/ProfilePage'
 import { daysToBirthday, plural } from './lib/profile'
 import { parseSharedHash } from './lib/share'
 import type { Product } from './lib/types'
@@ -123,8 +124,23 @@ export default function App() {
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
           </button>
           <button className="link" onClick={() => { setAboutOpen(true); track('about_open') }}>О приложении</button>
+          <button
+            className={`avatar-btn ${tab === 'profile' ? 'on' : ''}`}
+            aria-label={profile ? `Профиль: ${profile.name}` : 'Профиль'}
+            aria-current={tab === 'profile' ? 'page' : undefined}
+            style={profile ? { background: avatarTone(profile.name) } : undefined}
+            onClick={() => setTab(tab === 'profile' ? 'deck' : 'profile')}
+          >
+            {profile ? (
+              profile.name.trim()[0]?.toUpperCase()
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
+            )}
+            {!profile && <i className="dot" aria-hidden="true" />}
+          </button>
         </div>
       </header>
+      <div className="confetti-strip" aria-hidden="true"><i /><i /><i /><i /></div>
       {tab === 'deck' && (
         <FilterBar
           products={products}
@@ -172,7 +188,6 @@ export default function App() {
         <button className={tab === 'wishlist' ? 'on' : ''} onClick={() => setTab('wishlist')}>
           Вишлист{w.liked.length > 0 && <b className="badge">{w.liked.length}</b>}
         </button>
-        <button className={tab === 'profile' ? 'on' : ''} onClick={() => setTab('profile')}>Профиль</button>
       </nav>
       {open && (
         <Detail
