@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BRAND_PATHS } from '../icons/brands'
 import { itemUrl, shareUrl } from '../lib/share'
+import { getUserId } from '../lib/uid'
 import { track } from '../state'
 
 interface Props {
@@ -19,7 +20,8 @@ const Brand = ({ name }: { name: string }) => (
 
 export function ShareSheet({ kind, ids, itemTitle, senderName, onClose }: Props) {
   const [note, setNote] = useState('')
-  const url = kind === 'list' ? shareUrl(ids, senderName) : itemUrl(ids[0], senderName)
+  const uid = getUserId()
+  const url = kind === 'list' ? shareUrl(ids, senderName, uid) : itemUrl(ids[0], senderName, uid)
   const msg = kind === 'list' ? 'Мой вишлист впечатлений на Surprise.by' : `Хочу это попробовать: ${itemTitle ?? 'впечатление'}`
   const text = encodeURIComponent(msg)
   const u = encodeURIComponent(url)

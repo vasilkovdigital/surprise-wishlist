@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AboutSheet } from './components/AboutSheet'
 import { Deck } from './components/Deck'
 import { Detail } from './components/Detail'
 import { FilterBar } from './components/FilterBar'
@@ -29,6 +30,7 @@ export default function App() {
   const [gate, setGate] = useState(false)
   const [askProfile, setAskProfile] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   useEffect(() => {
     const h = () => setHash(location.hash)
@@ -71,7 +73,7 @@ export default function App() {
               <button className="btn btn-ink" onClick={leave}>Собрать свой вишлист</button>
             </div>
           </main>
-          {open && <Detail product={open} liked={false} shared campaign="share" onToggle={() => {}} onClose={() => setOpen(null)} />}
+          {open && <Detail product={open} liked={false} shared sharedBy={shared.ref} campaign="share" onToggle={() => {}} onClose={() => setOpen(null)} />}
         </div>
       )
     }
@@ -88,7 +90,7 @@ export default function App() {
             onBackToDeck={leave}
           />
         </main>
-        {open && <Detail product={open} liked={false} shared campaign="share" onToggle={() => {}} onClose={() => setOpen(null)} />}
+        {open && <Detail product={open} liked={false} shared sharedBy={shared.ref} campaign="share" onToggle={() => {}} onClose={() => setOpen(null)} />}
       </div>
     )
   }
@@ -114,6 +116,7 @@ export default function App() {
     <div className="app">
       <header className="top">
         <img src="brand/logo_main_dark.svg" alt="Surprise" height="26" />
+        <button className="link" onClick={() => { setAboutOpen(true); track('about_open') }}>О приложении</button>
       </header>
       {tab === 'deck' && (
         <FilterBar
@@ -156,7 +159,7 @@ export default function App() {
         )}
       </main>
       <nav className="tabs">
-        <button className={tab === 'deck' ? 'on' : ''} onClick={() => setTab('deck')}>Колода</button>
+        <button className={tab === 'deck' ? 'on' : ''} onClick={() => setTab('deck')}>Впечатления</button>
         <button className={tab === 'wishlist' ? 'on' : ''} onClick={() => setTab('wishlist')}>
           Вишлист{w.liked.length > 0 && <b className="badge">{w.liked.length}</b>}
         </button>
@@ -181,6 +184,7 @@ export default function App() {
           onClose={() => setSharing(null)}
         />
       )}
+      {aboutOpen && <AboutSheet meta={meta} count={products.length} onClose={() => setAboutOpen(false)} />}
       {filtersOpen && (
         <FilterSheet products={products} initial={w.filters} onApply={w.applyFilters} onClose={() => setFiltersOpen(false)} />
       )}

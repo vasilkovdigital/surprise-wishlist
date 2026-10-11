@@ -10,6 +10,8 @@ interface Props {
   liked: boolean
   campaign: UtmCampaign
   shared?: boolean
+  /** id того, кто поделился (если открыта чужая ссылка) */
+  sharedBy?: string
   onToggle: () => void
   onClose: () => void
   onShare?: () => void
@@ -20,7 +22,7 @@ function youtubeId(url: string) {
   return m?.[1]
 }
 
-export function Detail({ product: p, liked, campaign, shared, onToggle, onClose, onShare }: Props) {
+export function Detail({ product: p, liked, campaign, shared, sharedBy, onToggle, onClose, onShare }: Props) {
   const [video, setVideo] = useState(false)
   const yt = p.video ? youtubeId(p.video) : undefined
   const pics = [imgSrc(p), ...p.images]
@@ -51,7 +53,7 @@ export function Detail({ product: p, liked, campaign, shared, onToggle, onClose,
           <button className={`btn ${liked ? 'btn-ghost' : 'btn-green'}`} onClick={onToggle}>{liked ? 'Убрать из вишлиста' : '♥ В вишлист'}</button>
           <a
             className="btn btn-ink"
-            href={withUtm(p.url, campaign, p.id, shared)}
+            href={withUtm(p.url, campaign, { id: p.id, shared, ref: sharedBy })}
             target="_blank"
             rel="noopener"
             onClick={() => track('outbound_click', { id: p.id, campaign })}

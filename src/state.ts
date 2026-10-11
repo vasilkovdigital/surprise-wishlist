@@ -114,7 +114,7 @@ export function useProfile() {
     save('wl.profileAsked', true)
   }, [])
   const wipe = useCallback(() => {
-    for (const k of ['wl.profile', 'wl.profileAsked', 'wl.settings', 'wl.liked', 'wl.swipes', 'wl.filters', 'wl.seed']) {
+    for (const k of ['wl.profile', 'wl.profileAsked', 'wl.settings', 'wl.liked', 'wl.swipes', 'wl.filters', 'wl.seed', 'wl.uid']) {
       try { localStorage.removeItem(k) } catch { /* ignore */ }
     }
     location.hash = ''

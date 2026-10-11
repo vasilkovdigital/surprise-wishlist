@@ -16,24 +16,32 @@ export function decodeWishlist(code: string): string[] {
   })
 }
 
-export function shareUrl(ids: string[], name?: string) {
-  const base = location.href.split('#')[0]
-  const q = name ? `?n=${encodeURIComponent(name)}` : ''
-  return `${base}#/w/${encodeWishlist(ids)}${q}`
+function query(name?: string, uid?: string) {
+  const p = new URLSearchParams()
+  if (name) p.set('n', name)
+  if (uid) p.set('u', uid) // кто поделился — для атрибуции рефералов
+  const q = p.toString()
+  return q ? `?${q}` : ''
 }
 
-export function itemUrl(id: string, name?: string) {
-  const base = location.href.split('#')[0]
-  const q = name ? `?n=${encodeURIComponent(name)}` : ''
-  return `${base}#/i/${id}${q}`
+export function shareUrl(ids: string[], name?: string, uid?: string) {
+  return `${location.href.split('#')[0]}#/w/${encodeWishlist(ids)}${query(name, uid)}`
 }
 
-export type Shared = { kind: 'list'; ids: string[]; name?: string } | { kind: 'item'; id: string; name?: string }
+export function itemUrl(id: string, name?: string, uid?: string) {
+  return `${location.href.split('#')[0]}#/i/${id}${query(name, uid)}`
+}
+
+export type Shared =
+  | { kind: 'list'; ids: string[]; name?: string; ref?: string }
+  | { kind: 'item'; id: string; name?: string; ref?: string }
 
 export function parseSharedHash(hash: string): Shared | null {
   const m = hash.match(/^#\/([wi])\/([^?]*)(?:\?(.*))?$/)
   if (!m) return null
-  const name = new URLSearchParams(m[3] ?? '').get('n') ?? undefined
+  const q = new URLSearchParams(m[3] ?? '')
+  const name = q.get('n') ?? undefined
+  const ref = q.get('u') ?? undefined
   const body = decodeURIComponent(m[2])
-  return m[1] === 'w' ? { kind: 'list', ids: decodeWishlist(body), name } : { kind: 'item', id: body, name }
+  return m[1] === 'w' ? { kind: 'list', ids: decodeWishlist(body), name, ref } : { kind: 'item', id: body, name, ref }
 }
